@@ -4,7 +4,7 @@
 :root{
   --accent:#35ffd4; --accent2:#ffb347; --danger:#ff3d55; --good:#40ffa5; --warn:#ffb347;
   --bg:#0c1621; --panel:#0f2336cc; --panel-strong:#143149d0; --glass:blur(14px) saturate(210%);
-  --font:'Poppins',system-ui,sans-serif; font-size:clamp(12px,1.45vh,18px);
+  --font: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; font-size:clamp(12px,1.45vh,18px);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:#ecfbff;font-family:var(--font);overflow:hidden;}
@@ -99,3 +99,28 @@ kbd{background:#17394d;padding:.3rem .6rem .34rem;border-radius:10px;font-size:.
 .rangeVal{font-family:monospace;font-size:.66rem;padding:.22rem .55rem;background:#17394d;border:1px solid #2a5e74;border-radius:6px;}
 .bigBtn{background:linear-gradient(145deg,#11384a,#0f2834);color:#defcff;border:1px solid #29657d;font-size:.7rem;letter-spacing:.14em;font-weight:600;padding:.7rem 1.2rem;border-radius:18px;cursor:pointer;}
 .bigBtn.danger{background:#5a1823;border-color:#7a2233;color:#ffdbe0;}
+
+/* Event banner styling */
+.eventBanner{color:#ecfbff;text-align:center;font-weight:600;letter-spacing:.08em;}
+.eventBanner.warn{background:linear-gradient(120deg,#5a4a1a,#3d2f12);border-color:#8a6a32;}
+.eventBanner.infect{background:linear-gradient(120deg,#5a1a1a,#3d1212);border-color:#8a3232;}
+.eventBanner.good{background:linear-gradient(120deg,#1a5a3a,#123d28);border-color:#328a52;}
+
+/* Story content styling */
+.storyContent{font-size:.9rem;line-height:1.5;}
+.storyContent b{color:var(--accent);font-weight:600;}
+
+/* Task item styling */
+.taskItem.completed{opacity:.7;background:linear-gradient(130deg,#12392b,#112a24);border-color:#2c7c5c;}
+.taskItem.current{border-color:#35ffd4;box-shadow:0 0 0 1px #35ffd4;animation:taskPulse 2s ease-in-out infinite;}
+@keyframes taskPulse{0%,100%{box-shadow:0 0 0 1px #35ffd4;}50%{box-shadow:0 0 0 2px #35ffd4aa;}}
+
+.taskTitle{font-weight:600;font-size:.75rem;}
+.taskDesc{font-size:.65rem;opacity:.8;line-height:1.3;}
+
+/* Badge styling */
+.badge{font-size:.5rem;background:var(--accent);color:#042c2b;padding:.15rem .4rem;border-radius:8px;font-weight:700;letter-spacing:.1em;}
+
+/* Diff card styling */
+.diffTitle{font-weight:600;margin-bottom:.3rem;}
+.diffDesc{font-size:.7rem;opacity:.85;line-height:1.3;margin-bottom:.5rem;}
