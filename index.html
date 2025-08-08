@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Pandemic: Vector City – Story, Events, and Balance</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="CORS‑safe 3D outbreak game with story events, trapping barriers, pulse tracking, slower ramp, and background seeding."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css"/>
+
+  <!-- Import map for ES Modules (works from file://) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- Loading -->
+  <div id="loadingScreen">
+    <div class="logo">VECTOR&nbsp;CITY</div>
+    <div class="barOuter"><div class="barInner" id="loadBar"></div></div>
+    <div class="hint" id="loadHint">Bootstrapping simulation core...</div>
+    <div class="small">Open directly; no server required. Click canvas later to lock pointer (ESC to pause).</div>
+  </div>
+
+  <!-- Start Menu -->
+  <div id="startMenu" class="hidden">
+    <div class="menuBox">
+      <h1>PANDEMIC: VECTOR CITY</h1>
+      <div class="menuSubtitle">Choose a difficulty. Tutorial recommended on first play.</div>
+      <div class="difficultyGrid" id="difficultyGrid"></div>
+      <button id="startButton" disabled>SELECT DIFFICULTY</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="ui">
+    <div id="hudTop">
+      <div class="panel" id="statsPanel">
+        Infected: <span id="infectedCount">0</span>/<span id="citizenCount">0</span> |
+        R(t) <span id="rtValue">0.00</span> |
+        Vaccines <span id="vaccineCount">0</span> |
+        Barriers <span id="barrierCount">0</span> |
+        Casualties <span id="casualties">0</span> |
+        Score <span id="score">0</span>
+      </div>
+      <div class="panel solid"><b>Objective:</b> <span id="missionText">Select a difficulty...</span></div>
+    </div>
+    <div id="hudBottom">
+      <div class="panel controls" id="controlsPanel">WASD Move • Mouse Look • Shift Sprint • F Heal • E Barrier • Q Pulse Scan • H Help • ESC Pause</div>
+      <div class="panel log"><div id="eventLog"></div></div>
+    </div>
+    <div id="crosshair"></div>
+    <div id="storyBox" class="hidden" aria-modal="true" role="dialog"></div>
+    <div id="radar"></div>
+  </div>
+
+  <!-- Dynamic Event banner -->
+  <div id="eventBanner" class="hidden"></div>
+
+  <!-- Legend -->
+  <div id="legendPanel">
+    <div style="font-weight:700;letter-spacing:.06em;margin-bottom:.25rem;">Citizen Colors</div>
+    <div class="legendRow"><div class="legendDot healthy"></div><div>Healthy</div></div>
+    <div class="legendRow"><div class="legendDot infected"></div><div>Infected</div></div>
+    <div class="legendRow"><div class="legendDot recovering"></div><div>Recovering</div></div>
+    <div class="legendRow"><div class="legendDot immune"></div><div>Immune</div></div>
+    <div class="legendRow"><div class="legendDot deceased"></div><div>Deceased</div></div>
+  </div>
+
+  <!-- Tasks -->
+  <div id="tasksPanel" class="hidden">
+    <h3>Tutorial</h3>
+    <div class="progressBar"><span id="taskProgress"></span></div>
+    <div id="taskItems"></div>
+  </div>
+
+  <!-- Help -->
+  <button id="helpToggleBtn" title="Toggle Help">HELP</button>
+  <div id="helpPanel" class="hidden">
+    <h3>Containment Playbook</h3>
+    <p style="margin:0 0 .4rem;">
+      Pulse scans show halos that <b>follow</b> detected infected for ~2s.
+      Barriers are <b>wider, taller, and solid</b> – they trap those inside on placement.
+    </p>
+    <div class="helpGrid">
+      <kbd>WASD</kbd><div>Move</div>
+      <kbd>Mouse</kbd><div>Look (click to lock)</div>
+      <kbd>Shift</kbd><div>Sprint</div>
+      <kbd>F</kbd><div>Heal infected (consumes vaccine)</div>
+      <kbd>E</kbd><div>Deploy trapping barrier</div>
+      <kbd>Q</kbd><div>Pulse scan (tag infected)</div>
+      <kbd>H</kbd><div>Toggle help</div>
+      <kbd>ESC</kbd><div>Pause / settings</div>
+    </div>
+    <button class="btnClose" id="helpCloseBtn">CLOSE (H)</button>
+  </div>
+
+  <!-- Pause / Settings -->
+  <div id="pauseMenu" class="hidden">
+    <div class="pausePanel">
+      <h2>PAUSE / SETTINGS</h2>
+      <div class="settingRow"><label for="bloomStrength">Bloom Strength</label><div><input type="range" id="bloomStrength" min="0" max="3" step=".05" value="0.9"><span class="rangeVal" id="bloomStrengthVal">0.90</span></div></div>
+      <div class="settingRow"><label for="bloomRadius">Bloom Radius</label><div><input type="range" id="bloomRadius" min="0" max="1" step=".01" value=".2"><span class="rangeVal" id="bloomRadiusVal">0.20</span></div></div>
+      <div class="settingRow"><label for="bokehFocus">DOF Focus Dist.</label><div><input type="range" id="bokehFocus" min="1" max="300" step="1" value="85"><span class="rangeVal" id="bokehFocusVal">85</span></div></div>
+      <div class="settingRow"><label for="bokehAperture">DOF Aperture</label><div><input type="range" id="bokehAperture" min="0" max="0.01" step="0.0001" value="0.0012"><span class="rangeVal" id="bokehApertureVal">0.0012</span></div></div>
+      <div class="settingRow"><label for="exposure">Exposure</label><div><input type="range" id="exposure" min="0.3" max="2" step=".01" value="1.25"><span class="rangeVal" id="exposureVal">1.25</span></div></div>
+      <div class="settingRow"><label for="renderScale">Render Scale</label><div><input type="range" id="renderScale" min=".7" max="1" step=".01" value="1"><span class="rangeVal" id="renderScaleVal">1.00</span></div></div>
+      <div class="settingRow"><label>Effects</label><div style="display:flex;gap:1rem;flex-wrap:wrap;"><label><input type="checkbox" id="toggleBloom" checked> Bloom</label><label><input type="checkbox" id="toggleDOF"> DOF</label><label><input type="checkbox" id="toggleVignette"> Vignette</label></div></div>
+      <div style="display:flex;gap:.9rem;flex-wrap:wrap;">
+        <button class="bigBtn" id="resumeBtn">RESUME (ESC)</button>
+        <button class="bigBtn" id="restartBtn">RESTART</button>
+        <button class="bigBtn danger" id="quitBtn">QUIT TO MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial Pulse + Toast -->
+  <div id="tutorialPulse" class="hidden"></div>
+  <div id="toast"></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

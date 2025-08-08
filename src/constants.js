@@ -1,0 +1,8 @@
+// Game constants and difficulty presets
+export const DIFFICULTIES={
+  tutorial:{key:'tutorial',label:'Tutorial / Easy',desc:'Guided low-pressure intro.',citizens:48,initialInfected:4,infectiousnessScale:.85,spreadMultiplier:.88,spreadRampStart:.55,pickupRate:.50,startVaccines:5,startBarriers:3,tutorial:true,deathRate:0.002,deathMinSec:12,casualtyCap:5,seedGap:[14,18]},
+  easy:{key:'easy',label:'Easy',desc:'Relaxed challenge.',citizens:60,initialInfected:6,infectiousnessScale:1.0,spreadMultiplier:.95,spreadRampStart:.55,pickupRate:.45,startVaccines:4,startBarriers:3,deathRate:0.003,deathMinSec:11,casualtyCap:9,seedGap:[14,18]},
+  normal:{key:'normal',label:'Normal',desc:'Balanced progression.',citizens:75,initialInfected:10,infectiousnessScale:1.03,spreadMultiplier:1.04,spreadRampStart:.5,pickupRate:.40,startVaccines:3,startBarriers:2,deathRate:0.006,deathMinSec:10,casualtyCap:12,seedGap:[13,17]},
+  hard:{key:'hard',label:'Hard',desc:'Elevated transmission (tempered start).',citizens:90,initialInfected:16,infectiousnessScale:1.08,spreadMultiplier:1.10,spreadRampStart:.45,pickupRate:.38,startVaccines:3,startBarriers:2,deathRate:0.009,deathMinSec:9,casualtyCap:16,seedGap:[12,16]},
+  overrun:{key:'overrun',label:'Overrun',desc:'Severe wave, slower ramp-up.',citizens:115,initialInfected:28,infectiousnessScale:1.15,spreadMultiplier:1.16,spreadRampStart:.4,pickupRate:.35,startVaccines:2,startBarriers:2,deathRate:0.013,deathMinSec:8,casualtyCap:22,seedGap:[12,15]}
+};
