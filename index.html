@@ -7,7 +7,11 @@
 <meta name="description" content="Stylized 3D pandemic containment game with tutorial, difficulty selection, pause/settings, bloom & depth of field. Single file, CORS-safe."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Google Fonts fallback removed to prevent blocking -->
+
+<!-- Load minimal Three.js implementation -->
+<script src="js/three-minimal.js"></script>
+
 <style>
 /* =======================================================================
    CORE THEME / RESET
@@ -22,7 +26,7 @@
   --panel:#112233d0;
   --panel-strong:#17354dd0;
   --glass:blur(14px) saturate(210%);
-  --font:'Poppins', system-ui, sans-serif;
+  --font:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   font-size:clamp(12px,1.45vh,18px);
 }
 *{box-sizing:border-box;}
@@ -319,7 +323,7 @@ kbd{background:#17394d;padding:.33rem .65rem .36rem;border-radius:10px;font-size
 <!-- Glow Filter (optional reference) -->
 <svg width="0" height="0"><defs><filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 
-<script type="module">
+<script>
 /* =============================================================================
    PANDEMIC: VECTOR CITY – COMPLETE EDITION
    - FULL FEATURE SET RESTORED
@@ -330,12 +334,13 @@ kbd{background:#17394d;padding:.33rem .65rem .36rem;border-radius:10px;font-size
    ========================================================================== */
 
 /* ---------------------------------- Imports -------------------------------- */
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { EffectComposer } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass }     from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass }from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { BokehPass }      from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/BokehPass.js';
-import { ShaderPass }     from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/ShaderPass.js';
+// Using global THREE instead of ES modules
+// import * as THREE from 'three';
+// import { EffectComposer } from 'https://cdn.skypack.dev/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
+// import { RenderPass }     from 'https://cdn.skypack.dev/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
+// import { UnrealBloomPass }from 'https://cdn.skypack.dev/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+// import { BokehPass }      from 'https://cdn.skypack.dev/three@0.160.0/examples/jsm/postprocessing/BokehPass.js';
+// import { ShaderPass }     from 'https://cdn.skypack.dev/three@0.160.0/examples/jsm/postprocessing/ShaderPass.js';
 
 /* --------------------------------- Utilities -------------------------------- */
 const rand=(a=0,b=1)=>Math.random()*(b-a)+a;
@@ -393,7 +398,12 @@ const Input={
       if(document.pointerLockElement||GameState.pointerLockPending) return;
       try{
         GameState.pointerLockPending=true;
-        canvas.requestPointerLock({unadjustedMovement:true});
+        // Try modern pointer lock first, fall back to basic if not supported
+        try {
+          canvas.requestPointerLock({unadjustedMovement:true});
+        } catch (modernErr) {
+          canvas.requestPointerLock();
+        }
       }catch(err){GameState.pointerLockPending=false;}
     });
     document.addEventListener('pointerlockchange',()=>{
@@ -495,7 +505,7 @@ const EntityFactory={
   },
   citizenGeometry:new THREE.CapsuleGeometry(.38,1.2,8,14),
   createCitizen(){
-    const c=new Citizen(GameState.difficulty?.infectiousnessScale||1);
+    const c=new Citizen(GameState.difficulty && GameState.difficulty.infectiousnessScale !== undefined ? GameState.difficulty.infectiousnessScale : 1);
     c.mesh=new THREE.Mesh(this.citizenGeometry,this.citizenMaterials.healthy);
     c.mesh.castShadow=true;c.mesh.receiveShadow=true;
     c.pos.set(rand(-22,22),0,rand(-22,22));
@@ -620,42 +630,44 @@ const World={
     this.scene.add(new THREE.Points(geo,mat));
   },
   initPostFX(){
-    this.composer=new EffectComposer(this.renderer);
-    this.renderPass=new RenderPass(this.scene,this.camera);
-    this.composer.addPass(this.renderPass);
-    this.bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.2,.4,.85);
-    this.composer.addPass(this.bloomPass);
-    this.bokehPass=new BokehPass(this.scene,this.camera,{
-      focus:55,
-      aperture:0.0032,
-      maxblur:0.009,
-      width:innerWidth,
-      height:innerHeight
-    });
-    this.composer.addPass(this.bokehPass);
-    const vignetteShader={
-      uniforms:{tDiffuse:{value:null},offset:{value:1.1},darkness:{value:1.25},enabled:{value:1}},
-      vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`uniform sampler2D tDiffuse;uniform float offset;uniform float darkness;uniform float enabled;varying vec2 vUv;
-      void main(){
-        vec4 c=texture2D(tDiffuse,vUv);
-        if(enabled<.5){gl_FragColor=c;return;}
-        vec2 pos=vUv-.5;
-        float len=length(pos);
-        float vig=smoothstep(offset,darkness,len*1.4);
-        c.rgb*=1.0 - .6*vig;
-        gl_FragColor=c;
-      }`
-    };
-    this.vignettePass=new ShaderPass(vignetteShader);
-    this.composer.addPass(this.vignettePass);
-    Settings.applyEffects(); // sync toggles
+    // Simplified version without external post-processing modules
+    // this.composer=new EffectComposer(this.renderer);
+    // this.renderPass=new RenderPass(this.scene,this.camera);
+    // this.composer.addPass(this.renderPass);
+    // this.bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.2,.4,.85);
+    // this.composer.addPass(this.bloomPass);
+    // this.bokehPass=new BokehPass(this.scene,this.camera,{
+    //   focus:55,
+    //   aperture:0.0032,
+    //   maxblur:0.009,
+    //   width:innerWidth,
+    //   height:innerHeight
+    // });
+    // this.composer.addPass(this.bokehPass);
+    // const vignetteShader={
+    //   uniforms:{tDiffuse:{value:null},offset:{value:1.1},darkness:{value:1.25},enabled:{value:1}},
+    //   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    //   fragmentShader:`uniform sampler2D tDiffuse;uniform float offset;uniform float darkness;uniform float enabled;varying vec2 vUv;
+    //   void main(){
+    //     vec4 c=texture2D(tDiffuse,vUv);
+    //     if(enabled<.5){gl_FragColor=c;return;}
+    //     vec2 pos=vUv-.5;
+    //     float len=length(pos);
+    //     float vig=smoothstep(offset,darkness,len*1.4);
+    //     c.rgb*=1.0 - .6*vig;
+    //     gl_FragColor=c;
+    //   }`
+    // };
+    // this.vignettePass=new ShaderPass(vignetteShader);
+    // this.composer.addPass(this.vignettePass);
+    console.log('Post-processing effects disabled due to module loading constraints');
+    // Settings.applyEffects(); // sync toggles
   },
   onResize(){
     this.camera.aspect=innerWidth/innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(innerWidth,innerHeight);
-    this.composer?.setSize(innerWidth,innerHeight);
+    if(this.composer) this.composer.setSize(innerWidth,innerHeight);
   },
   render(){
     if(this.composer) this.composer.render();
@@ -677,7 +689,11 @@ const ECS={
   },
   remove(e){
     e.dead=true;
-    if(e.mesh){World.scene.remove(e.mesh); e.mesh.geometry?.dispose(); e.mesh.material?.dispose();}
+    if(e.mesh){
+      World.scene.remove(e.mesh); 
+      if(e.mesh.geometry && e.mesh.geometry.dispose) e.mesh.geometry.dispose(); 
+      if(e.mesh.material && e.mesh.material.dispose) e.mesh.material.dispose();
+    }
   },
   countInfected(){return this.citizens.filter(c=>c.state==='infected').length;}
 };
@@ -826,7 +842,7 @@ const InfectionSystem={
       const r=rE===0?(rR>0?1.3:0):rR/Math.abs(rE);
       ECS.rtValue=isFinite(r)?r:0;
     }
-    const rate=GameState.difficulty?.pickupRate??0.3;
+    const rate=GameState.difficulty && GameState.difficulty.pickupRate !== undefined ? GameState.difficulty.pickupRate : 0.3;
     if(ECS.pickups.length<8 && Math.random()<dt*rate){
       ECS.add(EntityFactory.createPickup(Math.random()<.66?'vaccine':'barrier'));
     }
@@ -860,7 +876,7 @@ const AI={
     });
   },
   spread(dt){
-    const mult=GameState.difficulty?.spreadMultiplier||1;
+    const mult=GameState.difficulty && GameState.difficulty.spreadMultiplier !== undefined ? GameState.difficulty.spreadMultiplier : 1;
     const arr=ECS.citizens;
     for(let i=0;i<arr.length;i++){
       const a=arr[i]; if(a.state!=='infected') continue;
@@ -886,7 +902,7 @@ const AI={
 const Tutorial={
   steps:[],currentIndex:0,flags:{},movementNeeded:4,
   init(){
-    if(!GameState.difficulty?.tutorial){ GameState.tutorialActive=false; return; }
+    if(!GameState.difficulty || !GameState.difficulty.tutorial){ GameState.tutorialActive=false; return; }
     GameState.tutorialActive=true;
     this.steps=[
       {id:'move',title:'Move',text:'Use WASD to move.',cond:()=>PlayerSystem.moveAccum>this.movementNeeded},
@@ -1049,7 +1065,8 @@ const DifficultyMenu={
     if(!this.selectedKey) return;
     GameState.difficulty=DIFFICULTIES[this.selectedKey];
     document.getElementById('startMenu').classList.add('fadeOut');
-    setTimeout(()=>document.getElementById('startMenu')?.remove(),650);
+    const startMenu = document.getElementById('startMenu');
+    if(startMenu) startMenu.remove();
     startSimulationWithDifficulty(GameState.difficulty);
   }
 };
@@ -1066,7 +1083,7 @@ const Settings={
       ['renderScale','renderScaleVal',v=>{
         World.renderer.setPixelRatio(Math.min(window.devicePixelRatio,1)*v);
         World.renderer.setSize(innerWidth,innerHeight);
-        World.composer?.setSize(innerWidth,innerHeight);
+        if(World.composer) World.composer.setSize(innerWidth,innerHeight);
       }]
     ];
     pairs.forEach(([id,val,fn])=>{
