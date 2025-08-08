@@ -7,15 +7,21 @@
   <meta name="description" content="CORS‑safe 3D outbreak game with story events, trapping barriers, pulse tracking, slower ramp, and background seeding."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet"> -->
+  <style>
+    /* Fallback font stack without external dependencies */
+    :root {
+      --font: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    }
+  </style>
   <link rel="stylesheet" href="./style.css"/>
 
-  <!-- Import map for ES Modules (works from file://) -->
+  <!-- Import map for ES Modules with local Three.js -->
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      "three": "./lib/three.module.js",
+      "three/addons/": "./lib/addons/"
     }
   }
   </script>
